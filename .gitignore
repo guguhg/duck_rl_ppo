@@ -4,3 +4,5 @@ __pycache__/
 checkpoints/
 *.mp4
 *.onnx
+*.egg-info/
+.vscode/
