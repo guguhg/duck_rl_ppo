@@ -28,7 +28,7 @@ from brax.training.agents.ppo import train as ppo               # PPO 训练主�
 from mujoco_playground import wrapper                            # vmap 并行包装层
 from mujoco_playground.config import locomotion_params           # 现成超参
 
-from duck_rl.env import DuckEnv, REWARD_TERMS                    # 环境 + 七项名字
+from duck_rl.env import DuckEnv, REWARD_TERMS                    # 环境 + 八项名字
 
 
 # ---------------------------------------------------------------- 心跳用的共享状态
@@ -127,7 +127,7 @@ def main():
     p.add_argument("--heartbeat", type=float, default=2.0,
                    help="心跳间隔秒数，0 = 关闭（只要 eval 输出）")
     p.add_argument("--dump-metrics", action="store_true",
-                   help="第一次 eval 时打印所有可用指标键名，用来确认七项分解的键")
+                   help="第一次 eval 时打印所有可用指标键名，用来确认八项分解的键")
     args = p.parse_args()
 
     out = Path(args.out)                     # 转成 Path 方便拼路径
@@ -161,7 +161,7 @@ def main():
     t0 = time.time()                          # 计时起点，给日志用
 
     def progress(step, metrics):
-        """brax 每次 eval 回调一次：总分 + 回合长度 + 七项奖励分解。"""
+        """brax 每次 eval 回调一次：总分 + 回合长度 + 八项奖励分解。"""
         el = time.time() - t0
 
         def fmt(key, spec="{:.1f}"):
@@ -190,7 +190,7 @@ def main():
               f"回合长度 {fmt('eval/avg_episode_length', '{:.0f}')}    "
               f"吞吐 {fmt('training/sps', '{:,.0f}')} sps", flush=True)
 
-        # 七项分解：EpisodeWrapper 会把 env.metrics 里的键累加成
+        # 八项分解：EpisodeWrapper 会把 env.metrics 里的键累加成
         # eval/episode_rew/xxx，等于"这一回合该项贡献了多少分"
         parts = []
         for name in REWARD_TERMS:
@@ -208,7 +208,7 @@ def main():
                     except (TypeError, ValueError):
                         pass
         if parts:
-            print("  七项  " + "  ".join(parts), flush=True)
+            print("  八项  " + "  ".join(parts), flush=True)
 
         if args.dump_metrics:                      # 只打一次，方便确认键名
             print("  全部指标键: " + ", ".join(sorted(metrics.keys())), flush=True)

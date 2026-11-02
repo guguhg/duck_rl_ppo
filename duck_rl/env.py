@@ -22,8 +22,8 @@ from duck_rl.constants import NUM_JOINTS, OBS_SIZE, sensor_slice   # 契约
 
 # 奖励项名字。reset 和 step 的 metrics 必须用同一批键——scan 要求结构不变。
 REWARD_TERMS = (
-    "tracking_lin", "tracking_ang", "upright",
-    "height", "alive", "action_rate", "torque",
+    "tracking_lin", "tracking_ang", "upright", "height",
+    "heading", "alive", "action_rate", "torque",
 )
 
 # 默认场景文件：用绝对路径解析，避免"必须从项目根目录运行"的隐性依赖
@@ -183,6 +183,7 @@ class DuckEnv(mjx_env.MjxEnv):
                 "last_action": jp.zeros(NUM_JOINTS),             # 上一帧网络输出（14,）
                 "steps": jp.zeros((), dtype=jp.int32),           # 本回合已走步数
                 "yaw0": yaw0,                                    # 起始航向，算相对偏航用
+                "yaw_cmd": jp.zeros(()),                         # 期望航向（指令角速度的积分）
                 "rng": rng,                                      # 留给后续重采样
             },
         )
@@ -207,8 +208,11 @@ class DuckEnv(mjx_env.MjxEnv):
         # 4) 新观测：last_action 传网络输出（不是 ctrl），保持与部署端一致
         obs = self._get_obs(data, action, state.info["command"], state.info["yaw0"])
 
-        # 5) 奖励：七项加权求和
-        reward, terms = self._reward(data, action, state.info["last_action"], state.info["command"])
+        # 5) 奖励：八项加权求和。yaw_cmd 是「指令角速度的积分」，也就是期望航向；
+        #    每步累加一次，用来判断"我现在该朝哪"。
+        yaw_cmd = state.info["yaw_cmd"] + state.info["command"][2] * c.ctrl_dt
+        reward, terms = self._reward(data, action, state.info["last_action"],
+                                     state.info["command"], state.info["yaw0"], yaw_cmd)
 
         # 6) 终止判断：摔倒 或 回合超时
         steps = state.info["steps"] + 1                           # 步数 +1
@@ -225,31 +229,35 @@ class DuckEnv(mjx_env.MjxEnv):
             # brax 的包装层会往 metrics 里塞 reward（training.py 第 201 行），
             # 如果我们直接返回新字典，那个键就丢了，scan 会因为结构变化而报错。
             metrics={**state.metrics, **self._metrics(data, terminated, terms)},
-            info={**state.info, "last_action": action, "steps": steps},   # info 同样要合并
+            info={**state.info, "last_action": action, "steps": steps,
+                  "yaw_cmd": yaw_cmd},                              # info 同样要合并
         )
 
     def _reward(self, data: mjx.Data, action: jax.Array, prev_action: jax.Array,
-                cmd: jax.Array):
-        """七项奖励加权求和。返回 (标量奖励, 各项明细字典)。"""
+                cmd: jax.Array, yaw0: jax.Array, yaw_cmd: jax.Array):
+        """八项奖励加权求和。返回 (标量奖励, 各项明细字典)。"""
         c = self._config
         # 世界系线速度 → 体坐标系，才能和"往前走 m/s"的指令比较
         v_body = _world_to_body(data.qpos[3:7], data.qvel[0:3])    # qpos[3:7] 是四元数
         # 角速度取陀螺仪 z 轴（机体系），与真机可测的量一致
         gyro_z = data.sensordata[self._sl_gyro][2]               # 第 3 个分量 = z 轴
+        dyaw = yaw_of(data.qpos[3:7]) - yaw0                     # 相对回合起点的偏航
 
-        terms = {                                                # 先算七项原始满意度
+        terms = {                                                # 先算八项原始满意度
             "tracking_lin": R.tracking_lin_vel(v_body, cmd[:2], c.sigma_lin),    # 用 vx, vy
             "tracking_ang": R.tracking_ang_vel(gyro_z, cmd[2], c.sigma_ang),     # 用 wz
             "upright": R.upright(gravity_body(data.qpos[3:7]), c.sigma_upright),  # 躯干竖直
             "height": R.keep_height(data.qpos[2], c.height_ref, c.sigma_height),  # 浮基高度
+            "heading": R.heading(dyaw, yaw_cmd, c.sigma_heading),                # 航向跟踪
             "alive": R.alive(),                                                  # 白给 1.0
             "action_rate": R.action_rate(action, prev_action),                   # 动作跳变
             "torque": R.torque_cost(data.actuator_force),                        # Στ²
         }
         reward = (c.w_tracking_lin * terms["tracking_lin"]       # 主目标，权重 2.5
-                  + c.w_tracking_ang * terms["tracking_ang"]     # 0.8
+                  + c.w_tracking_ang * terms["tracking_ang"]     # 0.4
                   + c.w_upright * terms["upright"]               # 0.5
                   + c.w_height * terms["height"]                 # 0.5
+                  + c.w_heading * terms["heading"]               # 0.8，治走歪的关键
                   + c.w_alive * terms["alive"]                   # 0.3，白给分
                   + c.w_action_rate * terms["action_rate"]       # -0.01，惩罚
                   + c.w_torque * terms["torque"])                # -0.0002，惩罚
@@ -261,7 +269,7 @@ class DuckEnv(mjx_env.MjxEnv):
             "height": data.qpos[2],                              # 浮基高度，训练曲线要看
             "terminated": jp.asarray(terminated, dtype=jp.float32),   # 是否摔倒
         }
-        for k in REWARD_TERMS:                                   # 七项明细也记下来
+        for k in REWARD_TERMS:                                   # 八项明细也记下来
             # reset 时没有 terms，填 0；step 时有，填真实值
             m[f"rew/{k}"] = terms[k] if terms is not None else jp.zeros(())
         return m                                                 # 键固定 9 个

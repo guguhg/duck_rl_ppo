@@ -51,6 +51,20 @@ def keep_height(z: jax.Array, z_ref: float, sigma: float) -> jax.Array:
     return jp.exp(-((z - z_ref) ** 2) / sigma)                    # 差 3 cm 就掉到 0.91
 
 
+def heading(dyaw: jax.Array, yaw_cmd: jax.Array, sigma: float) -> jax.Array:
+    """航向跟踪：当前偏航 vs「指令积分出来的期望航向」。
+
+    为什么必须有这一项：tracking_ang 只看 gyro_z（此刻转多快），它管不了累积偏差。
+    实测过——策略每步角速度都接近 0、追踪奖励满分，30 秒却偏了 60°，走成弧线。
+
+    注意：误差要归一到 [-π, π]，否则偏航角在 ±180° 附近会从 3.14 跳到 -3.14，
+    出现一个 2π 的假误差。用 sin/cos 再 atan2 是最稳的写法。
+    """
+    e = dyaw - yaw_cmd                        # 期望偏航 - 实际偏航
+    e = jp.arctan2(jp.sin(e), jp.cos(e))     # 归一到 [-π, π]，绕圈也不会跳
+    return jp.exp(-(e ** 2) / sigma)
+
+
 def action_rate(action: jax.Array, prev_action: jax.Array) -> jax.Array:
     """动作平滑代价：相邻两帧动作的平方差。
 
