@@ -328,15 +328,15 @@ class DuckEnv(mjx_env.MjxEnv):
         k_e1, k_e2, k_e3 = jax.random.split(k_edge, 3)
         edge_mag = jax.random.uniform(k_e1, (), minval=c.cmd_vy_edge_min,
                                       maxval=c.cmd_lin_y[1])
-        edge_sign = jnp.where(jax.random.uniform(k_e2, ()) < 0.5, -1.0, 1.0)
-        vy = jnp.where(jax.random.uniform(k_e3, ()) < c.cmd_vy_edge_prob,
-                       edge_mag * edge_sign, vy)
+        edge_sign = jp.where(jax.random.uniform(k_e2, ()) < 0.5, -1.0, 1.0)
+        vy = jp.where(jax.random.uniform(k_e3, ()) < c.cmd_vy_edge_prob,
+                      edge_mag * edge_sign, vy)
 
-        cmd = jnp.array([vx, vy, wz], dtype=jnp.float32)
+        cmd = jp.array([vx, vy, wz], dtype=jp.float32)
 
         # 单轴模式：随机挑一个轴保留，另两个置零
         axis = jax.random.randint(k_axis, (), 0, 3)              # 0 / 1 / 2
-        mask = (jnp.arange(3) == axis).astype(jnp.float32)       # 选中的那位是 1
-        cmd = jnp.where(jax.random.uniform(k_mode, ()) < c.cmd_single_axis_prob,
-                        cmd * mask, cmd)                         # 单轴时只留一个分量
-        return cmd.astype(jnp.float32)
+        mask = (jp.arange(3) == axis).astype(jp.float32)         # 选中的那位是 1
+        cmd = jp.where(jax.random.uniform(k_mode, ()) < c.cmd_single_axis_prob,
+                       cmd * mask, cmd)                          # 单轴时只留一个分量
+        return cmd.astype(jp.float32)
