@@ -254,14 +254,32 @@ class DuckEnv(mjx_env.MjxEnv):
             "torque": R.torque_cost(data.actuator_force),                        # Στ²
         }
         reward = (c.w_tracking_lin * terms["tracking_lin"]       # 主目标，权重 2.5
-                  + c.w_tracking_ang * terms["tracking_ang"]     # 0.4
+                  + c.w_tracking_ang * terms["tracking_ang"]     # 0.8，转向主力
                   + c.w_upright * terms["upright"]               # 0.5
                   + c.w_height * terms["height"]                 # 0.5
-                  + c.w_heading * terms["heading"]               # 0.8，治走歪的关键
+                  + self._w_heading(cmd[2]) * terms["heading"]   # 0.8 直行 / 0.12 转向
                   + c.w_alive * terms["alive"]                   # 0.3，白给分
                   + c.w_action_rate * terms["action_rate"]       # -0.01，惩罚
                   + c.w_torque * terms["torque"])                # -0.0002，惩罚
         return reward.astype(jp.float32), terms                  # 标量 + 明细
+
+    def _w_heading(self, cmd_wz: jax.Array) -> jax.Array:
+        """按转向指令大小给 heading 项做门控。
+
+        为什么需要：heading 用 exp(-e²/σ) 惩罚累积航向误差，σ 小的时候一旦误差
+        超过 0.6 rad 就没梯度了。而训练早期转向必然不准 → 这项恒为 0 → "转向"
+        这条路没有任何学习信号，PPO 只能守住"站住不动"的局部最优。
+        实测证据：wz=0.15（该转 43°）时策略只转 0.5°，高度还从 0.155 抬到 0.163
+        （绷紧身体站住），而 wz=0 时的直线曾经是完美的。
+
+        所以按指令分流：
+          wz=0     → gate=1.0 → 权重 0.80  直行纠偏全靠它（保住直线）
+          wz=0.25  → gate=0.37 → 权重 ~0.60
+          wz=0.6   → gate≈0   → 权重 0.12  转向交回 tracking_ang（逐点有梯度）
+        """
+        c = self._config
+        gate = jp.exp(-((cmd_wz / c.heading_gate_wz) ** 2))       # 高斯门控，光滑无跳变
+        return c.w_heading * (c.heading_gate_floor + (1.0 - c.heading_gate_floor) * gate)
 
     def _metrics(self, data: mjx.Data, terminated: jax.Array, terms=None) -> dict:
         """metrics 的键集合必须在 reset 与 step 之间完全一致（scan 要求结构不变）。"""
