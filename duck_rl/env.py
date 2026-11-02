@@ -309,11 +309,34 @@ class DuckEnv(mjx_env.MjxEnv):
 
     # ---------------------------------------------------------------- 内部工具
     def _sample_command(self, rng: jax.Array) -> jax.Array:
-        """每个回合采样一次速度指令 [vx, vy, wz]，范围来自 config。"""
+        """每个回合采样一次速度指令 [vx, vy, wz]，回合内不变。
+
+        为什么不直接三维独立均匀采样：[0, 0.3, 0]（纯侧移）这种组合的联合概率
+        只有 0.09%，4 万回合里才几十个样本，策略学不会 → 实测给侧移指令它会往后退。
+        两个补偿，把"单轴指令"的样本量拉上来：
+          1. 30% 的回合只动一个轴，另两个强制为 0（手柄实际就是这么用的）
+          2. vy 有一半概率落在两侧边界 [±0.2, ±0.3]，而不是均匀分布
+        """
         c = self._config
-        k1, k2, k3 = jax.random.split(rng, 3)                    # 三个独立随机键
-        return jp.array([
-            jax.random.uniform(k1, (), minval=c.cmd_lin_x[0], maxval=c.cmd_lin_x[1]),  # 前后
-            jax.random.uniform(k2, (), minval=c.cmd_lin_y[0], maxval=c.cmd_lin_y[1]),  # 左右
-            jax.random.uniform(k3, (), minval=c.cmd_ang_z[0], maxval=c.cmd_ang_z[1]),  # 转向
-        ], dtype=jp.float32)                                     # 标量元组 → (3,) 数组
+        k_mode, k_axis, k_vx, k_vy, k_wz, k_edge = jax.random.split(rng, 6)
+
+        vx = jax.random.uniform(k_vx, (), minval=c.cmd_lin_x[0], maxval=c.cmd_lin_x[1])
+        vy = jax.random.uniform(k_vy, (), minval=c.cmd_lin_y[0], maxval=c.cmd_lin_y[1])
+        wz = jax.random.uniform(k_wz, (), minval=c.cmd_ang_z[0], maxval=c.cmd_ang_z[1])
+
+        # vy 边界加权：一半概率取 |vy| ∈ [edge_min, 上限]，符号随机
+        k_e1, k_e2, k_e3 = jax.random.split(k_edge, 3)
+        edge_mag = jax.random.uniform(k_e1, (), minval=c.cmd_vy_edge_min,
+                                      maxval=c.cmd_lin_y[1])
+        edge_sign = jnp.where(jax.random.uniform(k_e2, ()) < 0.5, -1.0, 1.0)
+        vy = jnp.where(jax.random.uniform(k_e3, ()) < c.cmd_vy_edge_prob,
+                       edge_mag * edge_sign, vy)
+
+        cmd = jnp.array([vx, vy, wz], dtype=jnp.float32)
+
+        # 单轴模式：随机挑一个轴保留，另两个置零
+        axis = jax.random.randint(k_axis, (), 0, 3)              # 0 / 1 / 2
+        mask = (jnp.arange(3) == axis).astype(jnp.float32)       # 选中的那位是 1
+        cmd = jnp.where(jax.random.uniform(k_mode, ()) < c.cmd_single_axis_prob,
+                        cmd * mask, cmd)                         # 单轴时只留一个分量
+        return cmd.astype(jnp.float32)
