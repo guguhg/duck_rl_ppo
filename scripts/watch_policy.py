@@ -21,7 +21,7 @@ import numpy as np
 import onnxruntime as ort
 
 from duck_rl import config as cfg
-from duck_rl.constants import NUM_JOINTS
+from duck_rl.constants import NUM_JOINTS, OBS_SIZE
 
 
 def quat_to_gravity(q):
@@ -91,7 +91,21 @@ def main():
 
     sess = ort.InferenceSession(args.onnx, providers=["CPUExecutionProvider"])
     in_name = sess.get_inputs()[0].name
+    in_dim = int(sess.get_inputs()[0].shape[-1])
     print(f"[onnx] 输入 {sess.get_inputs()[0].shape} → 输出 {sess.get_outputs()[0].shape}")
+
+    # 自动适配新旧契约，免得拿旧 onnx 配新代码直接崩：
+    #   53 维 = 带 yaw（当前契约）
+    #   51 维 = 加 yaw 之前导出的旧模型
+    use_yaw = in_dim == OBS_SIZE
+    if in_dim == OBS_SIZE - 2:
+        print("[onnx] 注意：这是 51 维的旧模型（没有 yaw 观测）。它会走歪，"
+              "那是已知缺陷，不是脚本的问题。", flush=True)
+    elif not use_yaw:
+        raise SystemExit(
+            f"[onnx] 输入 {in_dim} 维，既不是 {OBS_SIZE}（当前）也不是 {OBS_SIZE - 2}（旧），"
+            f"和观测契约对不上。"
+        )
 
     cmd = np.array(args.cmd, dtype=np.float32)
     last_action = np.zeros(NUM_JOINTS, dtype=np.float32)
@@ -129,6 +143,7 @@ def main():
         viewer_ctx.cam.lookat[:] = d.qpos[:3]
 
     t0 = time.time()
+    ok = False          # 只有"正常跑完"才置 True；出错时不要进 --hold，否则像卡死
     try:
         for t in range(args.steps):
             # ---- 拼观测（顺序必须与 constants.OBS_LAYOUT 一致）----
@@ -136,11 +151,13 @@ def main():
             grav = quat_to_gravity(d.qpos[3:7])
             q = d.qpos[7:7 + NUM_JOINTS] - default_pos
             qd = d.qvel[6:6 + NUM_JOINTS] * c.obs_scale_qd
-            # 相对航向两维（sin/cos），让策略知道自己偏了多少——不加它会走歪
-            dyaw = quat_to_yaw(d.qpos[3:7]) - yaw0
-            heading = np.array([np.sin(dyaw), np.cos(dyaw)], dtype=np.float32)
-            obs = np.concatenate([gyro, grav, cmd, q, qd, last_action,
-                                  heading]).astype(np.float32)[None]
+            # 相对航向两维（sin/cos），让策略知道自己偏了多少——不加它会走歪。
+            # 旧模型（51 维）没有这两维，此时不拼，保持和它训练时一致。
+            parts = [gyro, grav, cmd, q, qd, last_action]
+            if use_yaw:
+                dyaw = quat_to_yaw(d.qpos[3:7]) - yaw0
+                parts.append(np.array([np.sin(dyaw), np.cos(dyaw)], dtype=np.float32))
+            obs = np.concatenate(parts).astype(np.float32)[None]
 
             action = sess.run(None, {in_name: obs})[0].reshape(-1)[:NUM_JOINTS]
             last_action = action.astype(np.float32)
@@ -174,12 +191,14 @@ def main():
             if (t + 1) % 50 == 0:
                 print(f"  t={t * c.ctrl_dt:5.1f}s  高度 {heights[-1]:.3f}  "
                       f"前进 {float(d.qpos[0]) - x0:+.3f} m")
+        ok = True                       # for 正常走完（或被 Esc 关窗 break），才算成功
     except KeyboardInterrupt:
         print("中断")
     finally:
         if viewer_ctx:
-            # --hold：脚本跑完后窗口不关，可以拖动着回看最后一帧
-            if args.hold and viewer_ctx.is_running():
+            # --hold：跑完后窗口不关，可以拖动着回看最后一帧。
+            # 必须加 ok 判断——出错时若还停在这里等用户操作，表现为"卡死"。
+            if args.hold and ok and viewer_ctx.is_running():
                 print("\n[viewer] 已跑完，窗口保持中。左键拖动转视角；"
                       "按 Esc / 关窗，或 Ctrl+C 退出。")
                 try:
@@ -192,11 +211,12 @@ def main():
                     print("\n[viewer] Ctrl+C，准备退出")
             viewer_ctx.__exit__(None, None, None)
 
-    h = np.array(heights)
-    print(f"\n[统计] 高度 起 {h[0]:.3f} → 末 {h[-1]:.3f}（最低 {h.min():.3f}）")
-    print(f"[统计] 前进 {float(d.qpos[0]) - x0:+.3f} m，用时 {args.steps * c.ctrl_dt:.1f}s "
-          f"→ 平均 {((float(d.qpos[0]) - x0) / (args.steps * c.ctrl_dt)):+.2f} m/s"
-          f"（指令 {args.cmd[0]:+.2f}）")
+    if heights:                     # 万一第一帧前就出错，heights 是空的，别去索引它
+        h = np.array(heights)
+        print(f"\n[统计] 高度 起 {h[0]:.3f} → 末 {h[-1]:.3f}（最低 {h.min():.3f}）")
+        print(f"[统计] 前进 {float(d.qpos[0]) - x0:+.3f} m，用时 {args.steps * c.ctrl_dt:.1f}s "
+              f"→ 平均 {((float(d.qpos[0]) - x0) / (args.steps * c.ctrl_dt)):+.2f} m/s"
+              f"（指令 {args.cmd[0]:+.2f}）")
 
     if args.video and frames:
         media.write_video(args.video, frames, fps=int(1 / (c.ctrl_dt * 2)))
