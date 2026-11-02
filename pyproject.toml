@@ -1,0 +1,27 @@
+[project]
+name = "duck-rl"
+version = "0.1.0"
+description = "从零手写的双足 RL 环境（MJX + Brax PPO）"
+requires-python = ">=3.11"
+dependencies = [
+    "mujoco>=3.3.0",
+    "mujoco-mjx>=3.3.0",
+    "playground>=0.2.0",
+    "brax>=0.14.0",
+    "jax[cuda12]",
+    "flax",
+    "optax",
+    "ml-collections",
+    "numpy",
+    "mediapy",
+    "onnxruntime",
+    "tensorflow",
+    "tf2onnx",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["duck_rl"]

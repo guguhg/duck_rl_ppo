@@ -64,6 +64,17 @@ def _world_to_body(q: jax.Array, v: jax.Array) -> jax.Array:
     return _quat_to_mat(q).T @ v                  # 转置后左乘 = 世界→体
 
 
+def yaw_of(q: jax.Array) -> jax.Array:
+    """四元数 → 偏航角 yaw（绕世界 z 轴，范围 -π~π）。
+
+    为什么需要它：gravity 对绕 z 轴的旋转**完全不敏感**（转多少度，重力在体系里
+    的分量都一样），gyro 只给瞬时角速度。所以不加 yaw，策略就无法知道
+    "我已经偏了 20 度"，也就无法纠偏——30 秒回放里掉头就是这个原因。
+    """
+    w, x, y, z = q[0], q[1], q[2], q[3]
+    return jp.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
+
+
 class DuckEnv(mjx_env.MjxEnv):
     """最小可用的双足环境。
 
@@ -135,7 +146,7 @@ class DuckEnv(mjx_env.MjxEnv):
     # ---------------------------------------------------------------- reset
     def reset(self, rng: jax.Array) -> mjx_env.State:
         """把机器人摆到 keyframe 的蹲姿，返回初始 State。
-
++
         注意：父类的 observation_size 会用 jax.eval_shape 调一次这个函数，
         所以这里不能 print、也不能做依赖具体数值的 Python 分支。
         """
@@ -154,13 +165,14 @@ class DuckEnv(mjx_env.MjxEnv):
         data = mjx.forward(self._mjx_model, data)                # 算一遍运动学
 
         cmd = self._sample_command(k_cmd)                        # 本回合指令 [vx, vy, wz]
+        yaw0 = yaw_of(data.qpos[3:7])                            # 本回合的起始航向（纠偏的基准）
 
-        # 拼真实观测（51 维）；last_action 初始为全零，表示"上一步没有动作"
-        obs = self._get_obs(data, jp.zeros(NUM_JOINTS), cmd)     # 第 2 个参数是 last_action
+        # 拼真实观测（53 维）；last_action 初始为全零，表示"上一步没有动作"
+        obs = self._get_obs(data, jp.zeros(NUM_JOINTS), cmd, yaw0)   # 第 2 个参数是 last_action
 
         return mjx_env.State(
             data=data,                                           # mjx.Data
-            obs=obs,                                             # (51,)
+            obs=obs,                                             # (53,)
             reward=jp.zeros(()),                                 # 标量，初始 0
             done=jp.zeros(()),                                   # 标量，初始没结束
             # metrics 的键必须与 step() 完全一致（scan 要求结构不变），
@@ -170,6 +182,7 @@ class DuckEnv(mjx_env.MjxEnv):
                 "command": cmd,                                  # 本回合的速度指令（3,）
                 "last_action": jp.zeros(NUM_JOINTS),             # 上一帧网络输出（14,）
                 "steps": jp.zeros((), dtype=jp.int32),           # 本回合已走步数
+                "yaw0": yaw0,                                    # 起始航向，算相对偏航用
                 "rng": rng,                                      # 留给后续重采样
             },
         )
@@ -192,7 +205,7 @@ class DuckEnv(mjx_env.MjxEnv):
         data = mjx_env.step(self._mjx_model, state.data, ctrl, self.n_substeps)
 
         # 4) 新观测：last_action 传网络输出（不是 ctrl），保持与部署端一致
-        obs = self._get_obs(data, action, state.info["command"])
+        obs = self._get_obs(data, action, state.info["command"], state.info["yaw0"])
 
         # 5) 奖励：七项加权求和
         reward, terms = self._reward(data, action, state.info["last_action"], state.info["command"])
@@ -205,7 +218,7 @@ class DuckEnv(mjx_env.MjxEnv):
 
         return state.replace(                                     # State 不可变，用 replace 造新的
             data=data,                                            # 新的物理状态
-            obs=obs,                                              # 新的 51 维观测
+            obs=obs,                                              # 新的 53 维观测
             reward=reward,                                        # 本步标量奖励
             done=done.astype(jp.float32),                         # 统一用 float32
             # 注意：必须「合并」而不是「替换」。
@@ -263,8 +276,9 @@ class DuckEnv(mjx_env.MjxEnv):
         return jp.logical_or(jp.logical_or(too_low, tilted), nan)  # 三项取或
 
     # ---------------------------------------------------------------- 观测
-    def _get_obs(self, data: mjx.Data, last_action: jax.Array, cmd: jax.Array) -> jax.Array:
-        """按 constants.OBS_LAYOUT 的顺序拼 51 维观测。
+    def _get_obs(self, data: mjx.Data, last_action: jax.Array, cmd: jax.Array,
+                 yaw0: jax.Array) -> jax.Array:
+        """按 constants.OBS_LAYOUT 的顺序拼 53 维观测。
 
         段的顺序必须与 OBS_LAYOUT 完全一致，否则训练和部署全乱——而且不会报错。
         """
@@ -285,7 +299,13 @@ class DuckEnv(mjx_env.MjxEnv):
         qd = data.qvel[self._qd_start:self._qd_start + NUM_JOINTS] * c.obs_scale_qd  # ×0.05
 
         # 5) 上一帧动作 14 维：让策略"记得自己刚才在干嘛"，少了它会抖
-        return jp.concatenate([gyro, grav, cmd, q, qd, last_action]).astype(jp.float32)  # 3+3+3+14+14+14
+        # 6) 相对航向 2 维：sin/cos 而不是角度本身，因为角度在 ±π 处不连续，
+        #    sin/cos 绕圈是连续的，网络学起来不会有跳变。
+        dyaw = yaw_of(data.qpos[3:7]) - yaw0                    # 相对本回合起点的偏航
+        heading = jp.array([jp.sin(dyaw), jp.cos(dyaw)])         # (2,)
+
+        return jp.concatenate([gyro, grav, cmd, q, qd, last_action,
+                               heading]).astype(jp.float32)     # 3+3+3+14+14+14+2 = 53
 
     # ---------------------------------------------------------------- 内部工具
     def _sample_command(self, rng: jax.Array) -> jax.Array:

@@ -25,9 +25,10 @@ OBS_LAYOUT = [
     ("q", NUM_JOINTS),            # 关节位置（相对默认姿态）
     ("qd", NUM_JOINTS),           # 关节速度
     ("last_action", NUM_JOINTS),  # 上一帧网络输出
+    ("yaw", 2),                   # 相对回合起点的航向角 sin/cos —— 让策略看得见"我偏了多少"
 ]
-OBS_SIZE = sum(n for _, n in OBS_LAYOUT)                        # 3+3+3+14+14+14 = 51
-assert OBS_SIZE == 51, f"观测维度变成了 {OBS_SIZE}，改了吗？"      # 维度错了立刻炸，别等训练两小时
+OBS_SIZE = sum(n for _, n in OBS_LAYOUT)                        # 3+3+3+14+14+14+2 = 53
+assert OBS_SIZE == 53, f"观测维度变成了 {OBS_SIZE}，改了吗？"      # 维度错了立刻炸，别等训练两小时
 
 
 def sensor_slice(m, name: str) -> slice:

@@ -82,15 +82,16 @@ def _layers(policy_params):
 
 
 # ---------------------------------------------------------------- 拼 ONNX
-def build_onnx(mean, std, layers, obs_size, act_size, out_path, normalize=False):
+def build_onnx(mean, std, layers, obs_size, act_size, out_path, normalize=True):
     """构图：obs → [归一化] → [MatMul+Add+Swish]*n → 最后一层不激活
             → 取前 act_size 维（μ） → tanh → action
 
     ⚠ normalize 必须与训练时的 `normalize_observations` 完全一致：
       - 训练归一化了而导出没带 → 真机读数没归一化，策略看到另一种量纲，直接失控
       - 训练没归一化而导出带了 → 输入被压两次，同样错
-      本项目借用的配置没写这一项，brax 默认 False（已用诊断脚本实测验证），故默认 False。
-      将来若打开归一化，务必同步改这里。
+      本项目借用的 BerkeleyHumanoid 配置在 locomotion_params.py:33 写了
+      `normalize_observations=True`，brax 因此把 running_statistics.normalize
+      挂到了策略前面，**所以这里必须带归一化**，默认 True。
     """
     nodes, inits = [], []                             # nodes = 计算节点；inits = 常量张量
 
@@ -150,14 +151,23 @@ def build_onnx(mean, std, layers, obs_size, act_size, out_path, normalize=False)
 
 
 # ---------------------------------------------------------------- 数值对齐
-def verify_onnx(model_path, params, mean, std, obs_size, act_size, hidden):
-    """同一份 obs 分别喂 JAX 策略和 ONNX，比最大绝对误差。"""
+def verify_onnx(model_path, params, mean, std, obs_size, act_size, hidden, normalize=True):
+    """同一份 obs 分别喂 JAX 策略和 ONNX，比最大绝对误差。
+
+    ⚠ 这里的 JAX 参考**必须带上与训练相同的 preprocess**（归一化）。
+      否则会得到"两边都没归一化"的假阳性：误差看起来 1e-7，实际两边都是错的。
+      这个坑之前踩过一次，所以参数从 build_onnx 一路透传下来。
+    """
+    from brax.training.acme import running_statistics                 # 归一化函数
     from brax.training.agents.ppo import networks as ppo_networks   # 局部导入，避免顶层依赖
 
-    net = ppo_networks.make_ppo_networks(              # 重建与训练完全相同的网络结构
+    kwargs = dict(                                   # 网络结构的公共参数
         observation_size=obs_size, action_size=act_size,
         policy_hidden_layer_sizes=hidden, value_hidden_layer_sizes=hidden,
     )
+    if normalize:                                    # 只有归一化时才挂 preprocess
+        kwargs["preprocess_observations_fn"] = running_statistics.normalize
+    net = ppo_networks.make_ppo_networks(**kwargs)    # 重建与训练完全相同的网络
     make_policy = ppo_networks.make_inference_fn(net)  # 包成推理函数
     policy = make_policy(params, deterministic=True)   # 确定性策略（取 μ 不采样）
 
@@ -191,11 +201,11 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--params", required=True, help="params_xxxx.pkl")   # 训练产物
     p.add_argument("--out", default="checkpoints/policy.onnx")          # 输出路径
-    p.add_argument("--obs", type=int, default=51)                       # 输入维度，与 constants 一致
+    p.add_argument("--obs", type=int, default=53)                       # 输入维度，与 constants 一致
     p.add_argument("--act", type=int, default=14)                       # 输出维度
     p.add_argument("--hidden", type=int, nargs="+", default=[512, 256, 128])   # 隐层宽度
-    p.add_argument("--normalize", action="store_true",
-                   help="把 (x-mean)/std 烘进图。仅在训练开了 normalize_observations 时使用")
+    p.add_argument("--no-normalize", action="store_true",
+                   help="不把 (x-mean)/std 烘进图。仅在训练确实没开 normalize_observations 时才用")
     p.add_argument("--skip-verify", action="store_true")                # 跳过对齐（提速用）
     args = p.parse_args()
 
@@ -212,13 +222,13 @@ def main():
     assert layers, "没找到任何 kernel 权重，params 结构可能和预期不同"   # 空列表 = 解包失败
 
     build_onnx(mean, std, layers, args.obs, args.act, args.out,
-               normalize=args.normalize)               # 拼图并保存
+               normalize=not args.no_normalize)      # 默认带归一化（与训练一致）
 
     if not args.skip_verify:
-        if args.normalize:
-            print("[verify] 注意：开了归一化时，下面的 JAX 参考没有归一化，"
-                  "误差会很大属正常")
-        verify_onnx(args.out, params, mean, std, args.obs, args.act, tuple(args.hidden))
+        if args.no_normalize:
+            print("[verify] 注意：已手动关闭归一化，JAX 参考也用恒等预处理")
+        verify_onnx(args.out, params, mean, std, args.obs, args.act,
+                    tuple(args.hidden), normalize=not args.no_normalize)
 
 
 if __name__ == "__main__":

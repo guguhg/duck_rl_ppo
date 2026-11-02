@@ -30,8 +30,8 @@ obs = np.asarray(state.obs)
 # ---------------------------------------------------------------- 1) 分段打印
 print("=== 观测分段（对照 constants.OBS_LAYOUT）===")
 off = 0
-for name, n in [("gyro", 3), ("gravity", 3), ("command", 3),
-                ("q", 14), ("qd", 14), ("last_action", 14)]:
+from duck_rl.constants import OBS_LAYOUT       # 直接读契约，加维度时这里不用改
+for name, n in OBS_LAYOUT:
     seg = obs[off:off + n]
     print(f"[{off:>2}:{off + n:>2}] {name:<12} "
           f"min={seg.min():+.3f} max={seg.max():+.3f}  前三个 {np.round(seg[:3], 3)}")
