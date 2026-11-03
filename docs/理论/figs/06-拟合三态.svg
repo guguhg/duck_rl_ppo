@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 260" width="680" height="260">
+<rect width="680" height="260" fill="#ffffff"/>
+<text x="40" y="24" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">同一组数据点，三种拟合状态</text>
+
+<line x1="52" y1="180" x2="193" y2="180" stroke="#D3D1C7" stroke-width="0.8"/>
+<path d="M52 130.5 L193 119.5" fill="none" stroke="#888780" stroke-width="1.5"/>
+<circle cx="63.3" cy="125" r="3.5" fill="#2C2C2A"/>
+<circle cx="87.3" cy="97.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="111.2" cy="119.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="136.6" cy="152.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="162" cy="130.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="181.7" cy="92" r="3.5" fill="#2C2C2A"/>
+<text x="122" y="204" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">欠拟合</text>
+<text x="122" y="224" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">仿真也学不会</text>
+
+<line x1="267" y1="180" x2="408" y2="180" stroke="#D3D1C7" stroke-width="0.8"/>
+<path d="M267 126 C285 90 305 100 327 118 C349 136 370 130 408 92" fill="none" stroke="#185FA5" stroke-width="1.5"/>
+<circle cx="278.3" cy="125" r="3.5" fill="#2C2C2A"/>
+<circle cx="302.3" cy="97.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="326.2" cy="119.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="351.6" cy="152.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="377" cy="130.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="396.7" cy="92" r="3.5" fill="#2C2C2A"/>
+<text x="337" y="204" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">合适</text>
+<text x="337" y="224" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">仿真好，真机也好</text>
+
+<line x1="482" y1="180" x2="623" y2="180" stroke="#D3D1C7" stroke-width="0.8"/>
+<path d="M482 128 C490 128 492 125 493.3 125 C500 125 510 100 517.3 97.5 C523 95 530 115 541.2 119.5 C548 122 558 150 566.6 152.5 C573 154 582 132 592 130.5 C600 129 606 100 611.7 92 L623 88" fill="none" stroke="#D85A30" stroke-width="1.5"/>
+<circle cx="493.3" cy="125" r="3.5" fill="#2C2C2A"/>
+<circle cx="517.3" cy="97.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="541.2" cy="119.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="566.6" cy="152.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="592" cy="130.5" r="3.5" fill="#2C2C2A"/>
+<circle cx="611.7" cy="92" r="3.5" fill="#2C2C2A"/>
+<text x="552" y="204" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">过拟合</text>
+<text x="552" y="224" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">仿真满分，真机零分</text>
+</svg>

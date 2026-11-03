@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 250" width="680" height="250">
+<rect width="680" height="250" fill="#ffffff"/>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<text x="40" y="24" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">每一层都在改写向量的长度，但永远是 1 个向量</text>
+
+<rect x="70" y="70" width="70" height="50" rx="6" fill="#85B7EB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="105" y="95" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#042C53">1×101</text>
+<line x1="142" y1="95" x2="176" y2="95" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="180" y="70" width="115" height="50" rx="6" fill="#B5D4F4" stroke="#185FA5" stroke-width="0.8"/>
+<text x="237" y="95" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#042C53">1×512</text>
+<line x1="297" y1="95" x2="331" y2="95" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="335" y="70" width="90" height="50" rx="6" fill="#B5D4F4" stroke="#185FA5" stroke-width="0.8"/>
+<text x="380" y="95" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#042C53">1×256</text>
+<line x1="427" y1="95" x2="461" y2="95" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="465" y="70" width="70" height="50" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="500" y="95" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#042C53">1×128</text>
+<line x1="537" y1="95" x2="571" y2="95" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="575" y="70" width="45" height="50" rx="6" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="597" y="95" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#042C53">1×28</text>
+
+<text x="340" y="148" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">W₁ 101×512　　W₂ 512×256　　W₃ 256×128　　W₄ 128×28</text>
+<text x="340" y="176" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">(1×101) × (101×512) = (1×512)：中间的 101 被乘掉了，不会保留</text>
+<text x="340" y="202" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">101 个数加权求和融合成 1 个数，做 512 遍得到 512 个数 —— 不是 101 种结果</text>
+<text x="340" y="228" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">28 = 14 个 μ + 14 个 log σ，拆开后就是 14 个关节的目标值</text>
+</svg>

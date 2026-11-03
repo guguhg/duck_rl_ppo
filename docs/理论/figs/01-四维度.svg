@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 300" width="680" height="300">
+<rect width="680" height="300" fill="#ffffff"/>
+<text x="40" y="26" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">深度学习的四个正交维度：不是"选一个"，而是四个坐标定一个组合</text>
+
+<rect x="40" y="48" width="140" height="52" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="110" y="66" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#0C447C">网络结构</text>
+<text x="110" y="84" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#185FA5">用什么工具算</text>
+<rect x="40" y="112" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="110" y="126" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">MLP 全连接</text>
+<rect x="40" y="146" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="110" y="160" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">CNN 卷积</text>
+<rect x="40" y="180" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="110" y="194" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">RNN / LSTM</text>
+<rect x="40" y="214" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="110" y="228" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">Transformer</text>
+
+<rect x="193" y="48" width="140" height="52" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="263" y="66" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#0C447C">训练范式</text>
+<text x="263" y="84" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#185FA5">怎么学出来</text>
+<rect x="193" y="112" width="140" height="28" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.8"/>
+<text x="263" y="126" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#633806">监督 / 无监督</text>
+<rect x="193" y="146" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="263" y="160" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">自监督</text>
+<rect x="193" y="180" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="263" y="194" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">强化学习</text>
+<rect x="193" y="214" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="263" y="228" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">模仿学习</text>
+
+<rect x="346" y="48" width="140" height="52" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="416" y="66" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#0C447C">任务类型</text>
+<text x="416" y="84" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#185FA5">干什么</text>
+<rect x="346" y="112" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="416" y="126" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">分类 / 检测</text>
+<rect x="346" y="146" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="416" y="160" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">分割</text>
+<rect x="346" y="180" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="416" y="194" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">回归 / 位姿</text>
+<rect x="346" y="214" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="416" y="228" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">生成</text>
+
+<rect x="499" y="48" width="140" height="52" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="569" y="66" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#0C447C">模型形态</text>
+<text x="569" y="84" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#185FA5">输入输出长啥样</text>
+<rect x="499" y="112" width="140" height="28" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="569" y="126" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#085041">策略网络</text>
+<rect x="499" y="146" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="569" y="160" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">VLA</text>
+<rect x="499" y="180" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="569" y="194" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">扩散策略</text>
+<rect x="499" y="214" width="140" height="28" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.6"/>
+<text x="569" y="228" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#2C2C2A">动作分块 ACT</text>
+
+<text x="340" y="272" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">高亮项 = Open Duck Mini 这只鸭子所在的位置：MLP + 强化学习(PPO) + 回归 + 策略网络</text>
+</svg>

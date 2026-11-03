@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 410" width="680" height="410">
+<rect width="680" height="410" fill="#ffffff"/>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<text x="40" y="24" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">一个控制周期里，数据是怎么从 obs 走到 action 的</text>
+
+<rect x="190" y="42" width="300" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="340" y="62" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#085041">obs 101 维</text>
+<text x="340" y="82" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#0F6E56">本体状态向量，每帧都不同</text>
+<line x1="340" y1="98" x2="340" y2="118" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<rect x="190" y="120" width="300" height="72" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="340" y="146" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#0C447C">权重矩阵（网络内部）</text>
+<text x="340" y="168" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#185FA5">22 万个数字，训练时唯一被改的东西</text>
+<line x1="240" y1="192" x2="240" y2="216" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="440" y1="192" x2="440" y2="216" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<rect x="150" y="218" width="180" height="60" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.8"/>
+<text x="240" y="240" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#633806">μ 14 维</text>
+<text x="240" y="260" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#854F0B">分布中心，最优猜测</text>
+
+<rect x="350" y="218" width="180" height="60" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.8"/>
+<text x="440" y="240" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#633806">log σ 14 维</text>
+<text x="440" y="260" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#854F0B">分布宽度，把握程度</text>
+
+<line x1="240" y1="278" x2="240" y2="302" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="440" y1="278" x2="440" y2="302" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<rect x="190" y="304" width="300" height="72" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.8"/>
+<text x="340" y="330" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">采样 action = μ + σ ⊙ ε</text>
+<text x="340" y="352" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">ε 每步现抽 14 个数，即用即弃</text>
+
+<text x="340" y="396" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">部署时跳过采样，直接取 μ</text>
+</svg>

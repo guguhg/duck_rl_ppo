@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 350" width="680" height="350">
+<rect width="680" height="350" fill="#ffffff"/>
+<defs>
+<marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="ar3r" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<text x="28" y="26" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#444441">Actor-Critic 训练闭环</text>
+<text x="652" y="26" text-anchor="end" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#A32D2D">灰框部分部署时整块丢掉</text>
+
+<rect x="188" y="146" width="154" height="112" rx="10" fill="none" stroke="#A32D2D" stroke-width="1.2" stroke-dasharray="5 4"/>
+
+<rect x="40" y="70" width="110" height="52" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="95" y="92" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#085041">obs</text>
+<text x="95" y="110" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#0F6E56">101 维</text>
+
+<rect x="200" y="70" width="130" height="52" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text x="265" y="92" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#0C447C">Actor</text>
+<text x="265" y="110" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#185FA5">出动作（μ + σ）</text>
+
+<rect x="380" y="70" width="110" height="52" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.8"/>
+<text x="435" y="92" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#633806">action</text>
+<text x="435" y="110" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#854F0B">14 维</text>
+
+<rect x="540" y="70" width="110" height="52" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.8"/>
+<text x="595" y="92" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">仿真环境</text>
+<text x="595" y="110" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#5F5E5A">给 reward</text>
+
+<line x1="152" y1="96" x2="196" y2="96" stroke="#888780" stroke-width="1.5" marker-end="url(#ar3)"/>
+<line x1="332" y1="96" x2="376" y2="96" stroke="#888780" stroke-width="1.5" marker-end="url(#ar3)"/>
+<line x1="492" y1="96" x2="536" y2="96" stroke="#888780" stroke-width="1.5" marker-end="url(#ar3)"/>
+
+<line x1="95" y1="124" x2="95" y2="188" stroke="#888780" stroke-width="1.2" stroke-dasharray="4 3"/>
+<line x1="95" y1="188" x2="196" y2="188" stroke="#888780" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+
+<rect x="200" y="162" width="130" height="52" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.8"/>
+<text x="265" y="184" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="500" fill="#2C2C2A">Critic</text>
+<text x="265" y="202" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#5F5E5A">给局面打分</text>
+
+<rect x="380" y="252" width="130" height="52" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="0.8"/>
+<text x="445" y="274" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="13" font-weight="500" fill="#791F1F">advantage</text>
+<text x="445" y="292" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#A32D2D">实际 − 预估</text>
+
+<line x1="265" y1="214" x2="265" y2="278" stroke="#888780" stroke-width="1.5"/>
+<line x1="265" y1="278" x2="376" y2="278" stroke="#888780" stroke-width="1.5" marker-end="url(#ar3)"/>
+<text x="300" y="270" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#5F5E5A">value（1 个标量）</text>
+
+<line x1="595" y1="124" x2="595" y2="278" stroke="#888780" stroke-width="1.5"/>
+<line x1="595" y1="278" x2="514" y2="278" stroke="#888780" stroke-width="1.5" marker-end="url(#ar3)"/>
+<text x="612" y="238" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#5F5E5A">实际回报</text>
+
+<path d="M445 250 L445 232 L340 232 L340 140 L300 140 L300 126" fill="none" stroke="#A32D2D" stroke-width="1.5" marker-end="url(#ar3r)"/>
+<text x="352" y="146" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#A32D2D">反传更新权重</text>
+
+<text x="28" y="332" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#5F5E5A">真机上只需要 Actor：不需要打分，也就不需要 Critic 和 advantage</text>
+</svg>

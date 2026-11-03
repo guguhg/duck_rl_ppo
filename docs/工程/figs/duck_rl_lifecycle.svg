@@ -1,0 +1,119 @@
+<svg viewBox="0 0 680 852" width="680" height="852" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>duck_rl 执行时间线：从敲命令到看到鸭子走</title>
+  <desc>按时间顺序展开：命令行、配置加载、模型加载、Brax 训练、存 checkpoint、导出 ONNX、回放验证；虚线表示换了一个新进程</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif; }
+    .th { font-size: 14px; font-weight: 500; fill: #1f2328; }
+    .ts { font-size: 12px; fill: #4b5563; }
+    .node rect { stroke-width: 1; }
+    .c-blue rect { fill: #e6f1fb; stroke: #185fa5; }
+    .c-gray rect { fill: #f1efe8; stroke: #5f5e5a; }
+    .c-amber rect { fill: #faeeda; stroke: #854f0b; }
+    .c-green rect { fill: #eaf3de; stroke: #3b6d11; }
+    .arr { stroke: #94a3b8; stroke-width: 1.5; fill: none; }
+  </style>
+
+
+  <text class="ts" x="40" y="24" dominant-baseline="central" style="font-size:11px">同一进程内从上往下执行；灰色虚线处换了一个新进程；橙色虚线 = 训练完成后第 9 轮才追加的域随机化</text>
+
+  <g class="node c-gray">
+    <rect x="100" y="42" width="320" height="52" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="60" text-anchor="middle" dominant-baseline="central" style="font-size:13px">python -m duck_rl.train</text>
+    <text class="ts" x="260" y="79" text-anchor="middle" dominant-baseline="central" style="font-size:11px">--num_timesteps / --num_envs / --num_evals</text>
+  </g>
+  <text class="ts" x="440" y="68" dominant-baseline="central" style="font-size:11px">你敲的那条命令</text>
+
+  <line x1="260" y1="94" x2="260" y2="114" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-blue">
+    <rect x="100" y="118" width="320" height="52" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="136" text-anchor="middle" dominant-baseline="central" style="font-size:13px">main()</text>
+    <text class="ts" x="260" y="155" text-anchor="middle" dominant-baseline="central" style="font-size:11px">train.py:52</text>
+  </g>
+  <text class="ts" x="440" y="144" dominant-baseline="central" style="font-size:11px">整个进程只跑一次</text>
+
+  <line x1="260" y1="170" x2="260" y2="190" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-blue">
+    <rect x="100" y="194" width="320" height="56" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="213" text-anchor="middle" dominant-baseline="central" style="font-size:13px">读配置 · config.default_config()</text>
+    <text class="ts" x="260" y="232" text-anchor="middle" dominant-baseline="central" style="font-size:11px">37 个字段 / 7 组 → 被 argparse 覆盖</text>
+  </g>
+  <text class="ts" x="440" y="222" dominant-baseline="central" style="font-size:11px">奖励权重、动作缩放都在这</text>
+
+  <line x1="260" y1="250" x2="260" y2="270" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-blue">
+    <rect x="100" y="274" width="320" height="56" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="293" text-anchor="middle" dominant-baseline="central" style="font-size:13px">DuckEnv() · 加载模型</text>
+    <text class="ts" x="260" y="312" text-anchor="middle" dominant-baseline="central" style="font-size:11px">MJCF + 28 STL → 读 keyframe 蹲姿</text>
+  </g>
+  <text class="ts" x="440" y="302" dominant-baseline="central" style="font-size:11px">nq=21 nu=14 nkey=1</text>
+
+  <line x1="260" y1="330" x2="260" y2="350" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-gray">
+    <rect x="100" y="354" width="320" height="56" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="373" text-anchor="middle" dominant-baseline="central" style="font-size:13px">ppo.train() · 借超参 + 三层 scan</text>
+    <text class="ts" x="260" y="392" text-anchor="middle" dominant-baseline="central" style="font-size:11px">epoch → training_step → actor_step</text>
+  </g>
+
+  <rect x="440" y="350" width="212" height="64" rx="8" fill="#fdf7ef" stroke="#854f0b" stroke-width="1" stroke-dasharray="5 4"/>
+  <text class="ts" x="546" y="368" text-anchor="middle" dominant-baseline="central" style="font-size:12px;fill:#8a5a12">randomization_fn</text>
+  <text class="ts" x="546" y="386" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:#8a5a12">第 9 轮才注入的钩子</text>
+  <text class="ts" x="546" y="402" text-anchor="middle" dominant-baseline="central" style="font-size:11px;fill:#8a5a12">前 8 轮训练没有这一层</text>
+
+  <line x1="260" y1="410" x2="260" y2="430" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-amber">
+    <rect x="100" y="434" width="320" height="56" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="453" text-anchor="middle" dominant-baseline="central" style="font-size:13px">env.step() · 512 环境并行</text>
+    <text class="ts" x="260" y="472" text-anchor="middle" dominant-baseline="central" style="font-size:11px">映射→剪裁→10 子步→观测→奖励→终止</text>
+  </g>
+  <text class="ts" x="440" y="462" dominant-baseline="central" style="font-size:11px">每秒 12 万次，全项目最热</text>
+
+  <line x1="260" y1="490" x2="260" y2="510" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-amber">
+    <rect x="100" y="514" width="320" height="52" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="532" text-anchor="middle" dominant-baseline="central" style="font-size:13px">checkpoints/params_*.pkl</text>
+    <text class="ts" x="260" y="551" text-anchor="middle" dominant-baseline="central" style="font-size:11px">每个 eval 一个，1.5 MB</text>
+  </g>
+  <text class="ts" x="440" y="540" dominant-baseline="central" style="font-size:11px">中断也不丢</text>
+
+  <line x1="260" y1="566" x2="260" y2="582" class="arr" marker-end="url(#arrow)"/>
+
+  <line x1="60" y1="596" x2="620" y2="596" stroke="#94a3b8" stroke-width="0.5" stroke-dasharray="4 4" fill="none"/>
+  <text class="ts" x="60" y="612" dominant-baseline="central" style="font-size:11px">↑ 训练进程到此结束（Ctrl+D / [done] 回到 shell）    ↓ 下面是另开的新进程，读磁盘上的 pkl</text>
+
+  <line x1="260" y1="620" x2="260" y2="640" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-blue">
+    <rect x="100" y="644" width="320" height="56" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="663" text-anchor="middle" dominant-baseline="central" style="font-size:13px">export_onnx.py</text>
+    <text class="ts" x="260" y="682" text-anchor="middle" dominant-baseline="central" style="font-size:11px">归一化 + 4 层 MLP + 取 μ + tanh</text>
+  </g>
+  <text class="ts" x="440" y="672" dominant-baseline="central" style="font-size:11px">与 JAX 对齐 &lt; 1e-4</text>
+
+  <line x1="260" y1="700" x2="260" y2="720" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-amber">
+    <rect x="100" y="724" width="320" height="52" rx="8" stroke-width="0.5"/>
+    <text class="th" x="260" y="742" text-anchor="middle" dominant-baseline="central" style="font-size:13px">policy.onnx</text>
+    <text class="ts" x="260" y="761" text-anchor="middle" dominant-baseline="central" style="font-size:11px">53 维输入 → 14 维动作</text>
+  </g>
+  <text class="ts" x="440" y="750" dominant-baseline="central" style="font-size:11px">真机部署读的就是它</text>
+
+  <line x1="260" y1="776" x2="260" y2="792" class="arr" marker-end="url(#arrow)"/>
+
+  <g class="node c-blue">
+    <rect x="100" y="796" width="320" height="34" rx="8" stroke-width="0.5"/>
+    <text class="ts" x="260" y="813" text-anchor="middle" dominant-baseline="central" style="font-size:11px">watch_policy.py / check_policy_mjx.py</text>
+  </g>
+  <text class="ts" x="440" y="813" dominant-baseline="central" style="font-size:11px">看画面 / 测真实速度</text>
+</svg>
