@@ -67,30 +67,55 @@ def main():
     import mujoco
     floor_id = mujoco.mj_name2id(env.mj_model, mujoco.mjtObj.mjOBJ_GEOM, "floor")
 
-    fr = np.asarray(model_v.geom_friction[:, floor_id, 0])
-    print(f"  地面摩擦      min={fr.min():.3f} max={fr.max():.3f}  "
-          f"期望 [{cfg.dr_friction[0]}, {cfg.dr_friction[1]}]  "
-          f"{'✓' if cfg.dr_friction[0] - 1e-6 <= fr.min() and fr.max() <= cfg.dr_friction[1] + 1e-6 else '✗'}")
+    # 统一的区间判定：先把数组压成"倍数或原值"，再比 min/max
+    def check(label, arr, lo, hi, unit=""):
+        a = np.asarray(arr, dtype=np.float64)
+        ok = (a.min() >= lo - 1e-5) and (a.max() <= hi + 1e-5)
+        print(f"  {'✓' if ok else '✗'} {label:<12} min={a.min():8.4f} max={a.max():8.4f}"
+              f"   期望 [{lo:g}, {hi:g}]{unit}")
+        return ok
 
+    ok_range = True
+
+    # 地面摩擦：原值，不是倍数
+    fr = np.asarray(model_v.geom_friction[:, floor_id, 0])
+    ok_range &= check("地面摩擦", fr, cfg.dr_friction[0], cfg.dr_friction[1])
+
+    # 关节摩擦：算"每个环境每个关节 / 原值"的倍数。
+    # 注意要先除再统计：fl 是 (N, n_joint)，b_fl 是 (n_joint,)，
+    # 直接广播相除得到 (N, n_joint)，取 min/max 才有意义。
+    # 千万别写成 fl.min(1)/b_fl —— 那是 (N,) / (n_joint,)，形状不匹配。
     fl = np.asarray(model_v.dof_frictionloss[:, FLOATING_BASE_DOF:])
     b_fl = np.asarray(base.dof_frictionloss[FLOATING_BASE_DOF:])
-    print(f"  关节摩擦倍数  min={(fl.min(1)/b_fl).min():.3f} max={(fl.max(1)/b_fl).max():.3f}  "
-          f"期望 [{cfg.dr_frictionloss[0]}, {cfg.dr_frictionloss[1]}]")
+    ok_range &= check("关节摩擦倍数", fl / b_fl, cfg.dr_frictionloss[0], cfg.dr_frictionloss[1])
 
+    # 转子惯量：同理
+    ar = np.asarray(model_v.dof_armature[:, FLOATING_BASE_DOF:])
+    b_ar = np.asarray(base.dof_armature[FLOATING_BASE_DOF:])
+    ok_range &= check("转子惯量倍数", ar / b_ar, cfg.dr_armature[0], cfg.dr_armature[1])
+
+    # 舵机 kp：gainprm 第三维是 10（MuJoCo 固定长度，position 只用第 0 个），
+    # 所以取 [:, :, 0] 得到 (N, nu)，再除以基准 (nu,)
     kp = np.asarray(model_v.actuator_gainprm[:, :, 0])
     b_kp = np.asarray(base.actuator_gainprm[:, 0])
-    print(f"  舵机 kp 倍数  min={(kp.min(1)/b_kp).min():.3f} max={(kp.max(1)/b_kp).max():.3f}  "
-          f"期望 [{cfg.dr_kp[0]}, {cfg.dr_kp[1]}]  （基准 kp={b_kp[0]:.2f}）")
+    ok_range &= check("舵机 kp 倍数", kp / b_kp, cfg.dr_kp[0], cfg.dr_kp[1],
+                      unit=f"  (基准 kp={b_kp[0]:.2f})")
 
+    # 总质量：先按环境求和，再比绝对值
     mass = np.asarray(model_v.body_mass).sum(1)
     b_mass = float(np.asarray(base.body_mass).sum())
-    print(f"  总质量        min={mass.min():.3f} max={mass.max():.3f}  "
-          f"期望 [{b_mass*cfg.dr_mass[0]:.3f}, {b_mass*cfg.dr_mass[1]:.3f}]  （基准 {b_mass:.3f} kg）")
+    ok_range &= check("总质量 kg", mass, b_mass * cfg.dr_mass[0], b_mass * cfg.dr_mass[1],
+                      unit=f"  (基准 {b_mass:.3f} kg)")
 
-    fmax = np.abs(np.asarray(model_v.actuator_forcerange)).max()
+    # 力矩上限：forcerange 是 (N, nu, 2)。
+    # 注意这里要用「逐环境的平均倍数」，不能取 max：
+    # 14 个独立 U(0.8,1.2) 样本取最大值，必然集中在 1.15~1.20（极值分布），
+    # 看起来像"没随机化到 0.8"。平均才反映真实分布。
     b_fmax = float(np.abs(np.asarray(base.actuator_forcerange)).max())
-    print(f"  力矩上限 max  min={np.abs(np.asarray(model_v.actuator_forcerange)).max(axis=(1,2)).min():.3f} "
-          f"max={fmax:.3f}  （基准 ±{b_fmax:.2f}）")
+    f_ratio = (np.abs(np.asarray(model_v.actuator_forcerange)) / b_fmax).mean(axis=(1, 2))
+    ok_range &= check("力矩上限倍数", f_ratio,
+                      cfg.dr_forcerange[0], cfg.dr_forcerange[1],
+                      unit=f"  (基准 ±{b_fmax:.2f} N·m，逐环境平均)")
 
     # ---------------------------------------------------------------- 最关键：kp 与 biasprm 同步
     print("\n=== kp 与 biasprm[1] 必须互为相反数 ===")
@@ -144,7 +169,7 @@ def main():
     print(f"  高度范围 {h.min():.4f} ~ {h.max():.4f}（有差异说明摩擦/质量真的不同）")
     print(f"  done: {d}")
     print(f"  NaN 检查: obs {np.isnan(np.asarray(state2.obs)).any()}  "
-          f"qpos {np.isnan(np.asarray(state2.qpos)).any()}")
+          f"qpos {np.isnan(np.asarray(state2.data.qpos)).any()}")
 
     print("\n判读：")
     print("  ✓ 形状/范围/kp 同步都对 → 可以开训")
