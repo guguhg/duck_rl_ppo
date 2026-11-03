@@ -128,6 +128,8 @@ def main():
                    help="心跳间隔秒数，0 = 关闭（只要 eval 输出）")
     p.add_argument("--dump-metrics", action="store_true",
                    help="第一次 eval 时打印所有可用指标键名，用来确认八项分解的键")
+    p.add_argument("--no-dr", action="store_true",
+                   help="关闭域随机化（做 A/B 对照用）。默认开启，见 config 的 dr_* 参数")
     args = p.parse_args()
 
     out = Path(args.out)                     # 转成 Path 方便拼路径
@@ -228,10 +230,23 @@ def main():
 
     print("[ppo] 开始训练。首次编译 3~10 分钟，期间只有心跳行在滚，属正常。", flush=True)
 
+    # 域随机化：brax 的 ppo.train 原生支持 randomization_fn，
+    # 它自己会 `jax.random.split(key, num_envs)` 再 functools.partial，
+    # 所以这里只传函数本体，不用管 rng。
+    if getattr(env._config, "dr_enable", False) and not args.no_dr:
+        from duck_rl.randomize import make_randomization_fn
+        rand_fn = make_randomization_fn(env.mj_model, env._config)
+        print("[dr] 域随机化 ON：地面摩擦 / 关节摩擦 / 转子惯量 / 质量 "
+              "/ 舵机 kp / 力矩上限（每环境一份参数）", flush=True)
+    else:
+        rand_fn = None
+        print("[dr] 域随机化 OFF", flush=True)
+
     try:
         _, final_params, _ = ppo.train(
             environment=env,                                # 我们的 env
             wrap_env_fn=wrapper.wrap_for_brax_training,     # 这层负责 vmap 并行与批处理
+            randomization_fn=rand_fn,                       # 域随机化（None = 关闭）
             network_factory=network_factory,                # 512-256-128，swish
             progress_fn=progress,                           # 上面那个打印回调
             policy_params_fn=save_params,                   # 上面那个存档回调
