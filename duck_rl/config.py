@@ -97,8 +97,13 @@ def default_config() -> config_dict.ConfigDict:
     # 的满分。PPO 于是落入"站住不动"的局部最优。
     # 修法：按指令分流。wz≈0 时本项全效（保住直线），wz 大时降到 15%（转向交回
     # tracking_ang，那是逐点有梯度的信号，exp4 证明它学得会 95%）。
+    #
+    # 【第 8 轮】sigma 0.2 → 0.1（回到 exp6 的值）。
+    # exp7 证明转向不会再被这一项压死——因为转向时权重已被门控压到 0.12。
+    # 而直行（wz=0、门控=1）时 0.8 + sigma 0.1 与 exp6 完全相同 → 直线应回到
+    # exp6 的 1.6° 水平。即「exp6 的直线 + exp7 的转向」这个并集。
     c.w_heading = 0.8
-    c.sigma_heading = 0.2     # 0.1 → 0.2：原值太尖，偏 34° 就没梯度了
+    c.sigma_heading = 0.1     # 直行纠偏要狠；转向有门控兜着，不怕它太尖
     c.heading_gate_wz = 0.25  # 门控尺度：|wz| 到这个量级时 heading 权重减半
     c.heading_gate_floor = 0.15  # 转向时保留的最低比例（完全归零会让直线又漂）
 
