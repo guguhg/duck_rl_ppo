@@ -146,7 +146,7 @@ class DuckEnv(mjx_env.MjxEnv):
     # ---------------------------------------------------------------- reset
     def reset(self, rng: jax.Array) -> mjx_env.State:
         """把机器人摆到 keyframe 的蹲姿，返回初始 State。
-+
+
         注意：父类的 observation_size 会用 jax.eval_shape 调一次这个函数，
         所以这里不能 print、也不能做依赖具体数值的 Python 分支。
         """
